@@ -1,0 +1,165 @@
+---
+title: "配置模型供应商"
+description: "通过 /login 命令接入 OpenAI / Anthropic / Gemini / Grok 兼容协议，或直接用环境变量配置。支持 DeepSeek、GLM、OpenRouter、Bedrock 代理等任意兼容服务。"
+keywords: ["模型供应商", "/login", "OpenAI", "Gemini", "Grok", "DeepSeek", "GLM"]
+og:image: "https://ccb.agent-aura.top/docs/images/og-cover.png"
+---
+
+CCB 不绑定 Anthropic 官方账号，你可以接入任意**协议兼容**的第三方服务。两种配置方式：
+
+- **交互式**：REPL 里输入 `/login`，按引导填字段（推荐首次用户）
+- **环境变量**：写入 shell 配置或 `.envrc`（推荐 CI / 自动化场景）
+
+## 协议矩阵
+
+| 协议 | 启用方式 | 适用场景 |
+|------|---------|---------|
+| **Anthropic Compatible**（默认） | 无需额外开关 | Anthropic 官方 / OpenRouter / Bedrock 代理 / 任意 Messages API 兼容服务 |
+| **OpenAI 兼容** | `CLAUDE_CODE_USE_OPENAI=1` | DeepSeek、Ollama、vLLM、Moonshot、本地部署等 |
+| **Gemini 兼容** | `CLAUDE_CODE_USE_GEMINI=1` | Google Gemini 系列模型 |
+| **Grok 兼容** | `CLAUDE_CODE_USE_GROK=1` | xAI Grok 系列模型 |
+
+## 方式一：`/login` 交互配置（推荐）
+
+在 REPL 里输入 `/login`，进入引导界面，选择对应协议栏目：
+
+```
+┌─ Select Provider ───────────────────────┐
+│  ❯ Anthropic Compatible                 │
+│    OpenAI Compatible                     │
+│    Gemini Compatible                     │
+│    Grok Compatible                       │
+└──────────────────────────────────────────┘
+```
+
+### Anthropic Compatible 需要填写
+
+| 字段 | 说明 | 示例 |
+|------|------|------|
+| Base URL | API 服务地址 | `https://api.example.com/v1` |
+| API Key | 认证密钥 | `sk-xxx` |
+| Haiku Model | 快速模型 ID | `claude-haiku-4-5-20251001` |
+| Sonnet Model | 均衡模型 ID | `claude-sonnet-4-6` |
+| Opus Model | 高性能模型 ID | `claude-opus-4-6` |
+
+> ⌨️ **Tab / Shift+Tab** 切字段，**Enter** 确认并跳到下一个，最后一个字段按 Enter 保存。
+
+### OpenAI 兼容（DeepSeek / Ollama / vLLM 等）
+
+`CLAUDE_CODE_USE_OPENAI=1` 启用后，配置以下环境变量：
+
+```bash
+export CLAUDE_CODE_USE_OPENAI=1
+export OPENAI_API_KEY=sk-xxx
+export OPENAI_BASE_URL=https://api.deepseek.com/v1
+export OPENAI_MODEL=deepseek-chat        # 可选，默认让 CCB 选合适档位
+```
+
+DeepSeek 的 thinking mode 已自动适配，无需额外配置。
+
+### Gemini 兼容
+
+```bash
+export CLAUDE_CODE_USE_GEMINI=1
+export GEMINI_API_KEY=AIzaSy...          # 必填
+export GEMINI_MODEL=gemini-2.5-pro       # 直接指定模型（最高优先级）
+# 或按能力档位映射：
+export GEMINI_DEFAULT_SONNET_MODEL=gemini-2.5-flash
+export GEMINI_DEFAULT_OPUS_MODEL=gemini-2.5-pro
+```
+
+模型映射优先级：`GEMINI_MODEL` > `GEMINI_DEFAULT_*_MODEL`。
+
+### Grok 兼容
+
+```bash
+export CLAUDE_CODE_USE_GROK=1
+export XAI_API_KEY=xai-...
+export GROK_MODEL=grok-4                  # 可选
+```
+
+## 环境变量优先级
+
+CCB 选择 provider 的逻辑：
+
+```
+命令行参数 --provider  >  环境变量 CLAUDE_CODE_USE_*  >  默认 firstParty (Anthropic)
+```
+
+可以同时配置多个 provider，通过环境变量切换：
+
+```bash
+# 临时用 DeepSeek 跑一个会话
+CLAUDE_CODE_USE_OPENAI=1 OPENAI_MODEL=deepseek-reasoner ccb
+```
+
+## 国内服务接入示例
+
+### DeepSeek
+
+```bash
+export CLAUDE_CODE_USE_OPENAI=1
+export OPENAI_API_KEY=sk-xxx
+export OPENAI_BASE_URL=https://api.deepseek.com/v1
+export OPENAI_MODEL=deepseek-chat
+```
+
+### 智谱 GLM
+
+GLM 官方提供 OpenAI 兼容接口：
+
+```bash
+export CLAUDE_CODE_USE_OPENAI=1
+export OPENAI_API_KEY=xxx
+export OPENAI_BASE_URL=https://open.bigmodel.cn/api/paas/v4
+export OPENAI_MODEL=glm-4.6
+```
+
+### 通义千问
+
+```bash
+export CLAUDE_CODE_USE_OPENAI=1
+export OPENAI_API_KEY=sk-xxx
+export OPENAI_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+export OPENAI_MODEL=qwen-max
+```
+
+### OpenRouter（一站式多模型）
+
+```bash
+export ANTHROPIC_BASE_URL=https://openrouter.ai/api/v1
+export ANTHROPIC_API_KEY=sk-or-...
+# 然后用 /login 选择 Anthropic Compatible，模型 ID 填 OpenRouter 的 ID
+```
+
+## 穷鬼模式（Poor Mode）
+
+接入便宜的第三方模型后，建议开启 `/poor` 进一步降本：
+
+```
+/poor on
+```
+
+效果：
+
+- 关闭自动记忆提取（`extract_memories`）
+- 关闭输入提示建议（`prompt_suggestion`）
+- 关闭 verification agent
+
+通常能减少 30%-50% 的 token 消耗。设置写入 `~/.claude/settings.json`，重启后保留。
+
+## 排查
+
+| 症状 | 检查 |
+|------|------|
+| `401 Unauthorized` | API Key 错误或过期 |
+| `model not found` | 模型 ID 写错，或 provider 没有这个模型 |
+| 响应慢到超时 | 网络问题或 base URL 写错（注意有的 provider 需要去掉 `/v1` 后缀） |
+| 工具调用不工作 | 部分小厂兼容服务不支持 tool_use，换模型或换 provider |
+| 中文乱码 | 终端编码问题，检查 `LANG=zh_CN.UTF-8` 是否设置 |
+
+## 下一步
+
+- [快速上手](./quickstart) — 基本使用流程
+- [Token Budget](../features/tools/token-budget) — 给每个会话设定 token 上限
+- [Langfuse 监控](../features/tools/langfuse-monitoring) — 实时观察每次 agent loop 的 token 消耗

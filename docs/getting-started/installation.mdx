@@ -1,0 +1,125 @@
+---
+title: "安装 Claude Code Best"
+description: "通过 NPM 一行命令安装 CCB，或从源码克隆构建。支持 macOS、Linux、Windows。"
+keywords: ["安装", "CCB", "NPM", "源码构建", "Bun"]
+og:image: "https://ccb.agent-aura.top/docs/images/og-cover.png"
+---
+
+CCB 提供两种安装方式：**NPM 安装**（推荐普通用户）和**源码构建**（推荐贡献者/二次开发者）。
+
+## 方式一：NPM 安装（推荐）
+
+无需克隆仓库，一行命令安装到全局：
+
+```sh
+npm i -g claude-code-best
+
+# 验证
+ccb --version
+```
+
+启动方式：
+
+```sh
+ccb              # 以 Node.js 形态运行
+ccb-bun          # 以 Bun 形态运行（启动更快）
+ccb update       # 更新到最新版本
+```
+
+> 💡 **不推荐** `bun i -g claude-code-best`：bun 全局安装在部分平台有路径冲突问题，建议用 npm。如果一定要用 bun，记得 `bun pm -g trust claude-code-best @claude-code-best/mcp-chrome-bridge` 解除信任限制。
+
+### 远程控制模式（可选）
+
+如果你有自己的 Remote Control Server，可以通过环境变量直连：
+
+```sh
+CLAUDE_BRIDGE_BASE_URL=https://your-rcs.example.com/ \
+CLAUDE_BRIDGE_OAUTH_TOKEN=your-token \
+ccb --remote-control
+```
+
+详情见 [Remote Control 自托管](../features/modes/remote-control-self-hosting)。
+
+### 安装失败排查
+
+| 症状 | 处理 |
+|------|------|
+| `command not found: ccb` | 重开终端，或手动把 npm global bin 加入 PATH |
+| 旧版本残留导致异常 | `npm rm -g claude-code-best && npm i -g claude-code-best@latest` |
+| 拉取特定版本 | `npm i -g claude-code-best@<版本号>` |
+| Windows 上启动报错 | 改用 `ccb-bun` 或安装 [Visual C++ Redistributable](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist) |
+
+---
+
+## 方式二：源码构建（贡献者）
+
+源码运行需要 **Bun ≥ 1.3.11**。
+
+### 1. 安装 Bun
+
+```bash
+# Linux / macOS
+curl -fsSL https://bun.sh/install | bash
+
+# Windows (PowerShell)
+powershell -c "irm bun.sh/install.ps1 | iex"
+```
+
+安装后让当前 shell 识别 bun：
+
+```bash
+exec /bin/zsh        # macOS 默认 zsh
+# 或
+source ~/.bashrc     # Linux bash
+```
+
+> ⚠️ **一定要最新版 bun**：`bun upgrade`。低版本会触发各种奇怪的 BUG。
+
+### 2. 克隆并安装依赖
+
+```bash
+git clone https://github.com/claude-code-best/claude-code.git
+cd claude-code
+bun install
+```
+
+### 3. 开发模式运行
+
+```bash
+bun run dev                    # 默认开发模式（启用所有 feature）
+bun run dev:inspect            # 带调试器（BUN_INSPECT=9229 改端口）
+echo "say hello" | bun run src/entrypoints/cli.tsx -p   # Pipe 模式
+```
+
+### 4. 构建产物
+
+```bash
+bun run build        # 默认 Bun.build，输出 dist/cli.js + chunks/
+bun run build:vite   # 备选 Vite 构建（chunk 体积更小）
+```
+
+构建后可直接用 node 运行：
+
+```bash
+node dist/cli.js
+```
+
+> 🔍 **为什么 Vite 构建强制代码分割？** 单文件 17MB 产物会让 Bun/JSC 全量解析 bytecode，RSS 暴涨至 ~1GB；分割为 600+ 小 chunk 后按需加载，`--version` RSS 从 966MB 降至 35MB。详见 [architecture/](../architecture/what-is-claude-code)。
+
+### 5. 提交前检查
+
+每次修改后必须运行：
+
+```bash
+bun run precheck    # typecheck + lint fix + test
+```
+
+`precheck` 必须零错误通过，pre-commit hook 会自动拦截不合格的提交。
+
+---
+
+## 下一步
+
+- [快速上手](./quickstart) — 5 分钟学会基本使用
+- [配置模型供应商](./model-providers) — 接入 DeepSeek、GLM、OpenAI 等第三方模型
+- [Feature Flags](../internals/feature-flags) — 了解运行时功能开关

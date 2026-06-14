@@ -1,0 +1,128 @@
+---
+title: "快速上手"
+description: "5 分钟掌握 CCB 的基本使用：启动会话、输入指令、审批工具调用、用斜杠命令管理状态。"
+keywords: ["快速开始", "使用教程", "REPL", "斜杠命令"]
+og:image: "https://ccb.agent-aura.top/docs/images/og-cover.png"
+---
+
+这篇指南假设你已经按 [安装文档](./installation) 装好了 `ccb` 命令。
+
+## 启动第一个会话
+
+在任意项目目录下运行：
+
+```bash
+cd my-project
+ccb
+```
+
+首次启动会经过简短的初始化：
+
+1. **信任确认** — 询问是否信任当前目录的文件读写权限
+2. **主题选择** — 浅色 / 深色 / 自动
+3. **登录配置**（首次）— 跳到 `/login`，配置 API（详见 [配置模型供应商](./model-providers)）
+
+进入 REPL 后会看到：
+
+```
+╭─────────────────────────────────────────────╮
+│  ✻ Welcome to Claude Code Best              │
+│  /help for commands, ctrl+c to exit         │
+╰─────────────────────────────────────────────╯
+>
+```
+
+## 基本对话
+
+直接输入任何自然语言指令，回车发送：
+
+```
+> 看一下这个项目的目录结构，告诉我用的是什么技术栈
+```
+
+CCB 会：
+
+1. 调用 `Glob` / `Read` 工具扫描文件
+2. 把结果交给模型分析
+3. 在终端打印回答
+
+如果模型决定改文件或跑命令，会先弹出**权限确认**对话框：
+
+```
+┌─ File Edit ────────────────────────────────┐
+│  src/foo.ts                                 │
+│  - export const x = 1                       │
+│  + export const x = 2                       │
+│                                             │
+│  ❯ 1. Yes  2. Yes, and don't ask again     │
+│    3. No                                    │
+└─────────────────────────────────────────────┘
+```
+
+按数字键或方向键选择。`2` 会把这类操作加入白名单，后续不再询问。
+
+## 常用斜杠命令
+
+| 命令 | 作用 |
+|------|------|
+| `/help` | 列出所有可用命令 |
+| `/login` | 配置 / 切换模型供应商 |
+| `/clear` | 清空当前会话上下文 |
+| `/compact` | 手动压缩历史，节省 token |
+| `/poor` | 切换穷鬼模式（关闭记忆提取和提示建议，省 token） |
+| `/agents` | 管理自定义 agent |
+| `/mcp` | 管理 MCP 服务器 |
+| `/dream` | 手动触发记忆整理 |
+| `/exit` | 退出 |
+
+> 🔍 完整命令列表在 REPL 中输入 `/help` 查看。
+
+## 权限模式
+
+CCB 有 4 种权限模式，启动时按需选择：
+
+| 模式 | 行为 |
+|------|------|
+| **default** | 每个潜在危险操作都询问（最安全） |
+| **acceptEdits** | 自动批准文件编辑，其他仍询问 |
+| **plan** | 只规划不执行（读代码、列出步骤，但不改任何东西） |
+| **bypassPermissions** | 跳过所有权限检查（**危险**，仅在沙箱里用） |
+
+切换模式：在 REPL 里按 `Shift+Tab` 循环切换，或启动时 `ccb --permission-mode plan`。
+
+## 用 Plan 模式做需求分析
+
+复杂任务建议先用 plan 模式做规划：
+
+```
+> 想给这个项目加一个 CI workflow，跑 typecheck 和 test。先告诉我你打算怎么改
+```
+
+模型会列出实施计划，你审阅后输入 `/exit-plan-mode` 让它落地。
+
+详见 [安全与权限 - Plan 模式](../architecture/safety/plan-mode)。
+
+## 后台任务 / 多 Agent
+
+CCB 支持把长任务派给后台 agent，主对话不被阻塞：
+
+```
+> 帮我跑一遍全量测试，跑完告诉我结果
+> （自动用 Task tool 在后台执行）
+```
+
+后台 agent 状态会显示在底部状态条，用 ↑/↓ 切换查看。详见 [Background Agent Selector](../features/agents/background-agent-selector)。
+
+## 退出与会话恢复
+
+- `Ctrl+C` 两次 — 退出 REPL
+- `ccb --resume` — 恢复上次会话
+- `ccb --continue` — 继续上次会话并保留全部历史
+
+会话文件存在 `~/.claude/projects/<project-hash>/` 下。
+
+## 下一步
+
+- [配置模型供应商](./model-providers) — 接入第三方 API
+- [工具系统](../architecture/tools/what-are-tools) — 了解 CCB 有哪些内置工具
+- [使用指南](../guides/hooks) — 用 Hooks 在工具调用前后注入自定义逻辑
