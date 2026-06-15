@@ -247,6 +247,7 @@ export const init = memoize(async (): Promise<void> => {
       }
     } catch {
       // Ripgrep status is best-effort; never block init.
+      logForDebugging('[init] ripgrep status check skipped')
     }
 
     logForDiagnosticsNoPII('info', 'init_completed', {

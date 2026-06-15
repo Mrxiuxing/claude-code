@@ -112,7 +112,7 @@ export function resolveBuiltinWithFallback(
     mode: 'builtin',
     command: builtinPath,
     args: [],
-    note: `no ripgrep available on ${p}; install via apt/pkg/brew or set USE_BUILTIN_RIPGREP=0`,
+    note: `no ripgrep available on ${p}; install ripgrep via apt/pkg/brew`,
   }
 }
 
